@@ -20,16 +20,10 @@ class Advert
      * @ORM\GeneratedValue(strategy="AUTO")
      */
 
-    public function __construct()
-    {
-        // Par défaut, la date de l'annonce est la date d'aujourd'hui
-        $this->date = new \Datetime();
-    }
-
     private $id;
 
     /**
-     * @var string
+     * @var \DateTime
      *
      * @ORM\Column(name="date", type="datetime", length=255)
      */
@@ -55,6 +49,15 @@ class Advert
      * @ORM\Column(name="content", type="text")
      */
     private $content;
+    /**
+     * @ORM\Column(name="published", type="boolean")
+     */
+    private $published = true;
+    public function __construct()
+    {
+        // Par défaut, la date de l'annonce est la date d'aujourd'hui
+        $this->date = new \Datetime();
+    }
 
 
     /**
@@ -162,5 +165,20 @@ class Advert
     {
         return $this->content;
     }
+    /**
+     * @param bool $published
+     */
+    public function setPublished($published)
+    {
+        $this->published = $published;
+    }
+    /**
+     * @return bool
+     */
+    public function getPublished()
+    {
+        return $this->published;
+    }
+
 }
 
