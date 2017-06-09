@@ -67,8 +67,14 @@ class AdvertController extends Controller
 
         // Ici, on récupérera la liste des annonces, puis on la passera au template
 
+ //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-services-theorie-et-creation-1
+        // On a donc accès au conteneur :
 
- //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/le-moteur-de-templates-twig-1
+        $mailer = $this->container->get('mailer');
+
+        // On peut envoyer des e-mails, etc.
+
+        //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/le-moteur-de-templates-twig-1
         // Mais pour l'instant, on ne fait qu'appeler le template
         // Dans l'action indexAction() :
 
@@ -92,13 +98,14 @@ class AdvertController extends Controller
                 'author'  => 'Mathieu',
                 'content' => 'Nous proposons un poste pour webdesigner. Blabla…',
                 'date'    => new \Datetime())
+
+
         );
 
         // Et modifiez le 2nd argument pour injecter notre liste
         return $this->render('OCPlatformBundle:Advert:index.html.twig', array(
             'listAdverts' => $listAdverts
         ));
-
 
     }
 
@@ -210,7 +217,21 @@ class AdvertController extends Controller
 
        // Si on n'est pas en POST, alors on affiche le formulaire
        return $this->render('OCPlatformBundle:Advert:add.html.twig');
+
+
+       //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-services-theorie-et-creation-1
+       // On récupère le service
+       $antispam = $this->container->get('oc_platform.antispam');
+
+       // Je pars du principe que $text contient le texte d'un message quelconque
+       $text = '...';
+       if ($antispam->isSpam($text)) {
+           throw new \Exception('Votre message a été détecté comme spam !');
+       }
+
+       // Ici le message n'est pas un spam
    }
+
 
     public function editAction($id, Request $request)
     {
