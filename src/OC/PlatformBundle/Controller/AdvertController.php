@@ -180,6 +180,15 @@ class AdvertController extends Controller
                 'advert' => $advert
             ));
 
+            https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/la-couche-metier-les-entites-1
+            $advert = new Advert;
+            $advert->setContent("Recherche développeur Symfony3.");
+
+            return $this->render('OCPlatformBundle:Advert:view.html.twig', array(
+                'advert' => $advert
+            ));
+
+
         }
 
 
