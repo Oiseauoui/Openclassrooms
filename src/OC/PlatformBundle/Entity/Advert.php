@@ -78,7 +78,7 @@ class Advert
 
       /**
      * @Gedmo\Slug(fields={"title"})
-     * @ORM\Column(name="slug", type="string", length=255, unique=true)
+     * @ORM\Column(name="slug", type="string", length=255)
      */
     private $slug;
 

@@ -4,6 +4,13 @@
 namespace OC\PlatformBundle\Controller;
 
 // N'oubliez pas ces use
+
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use OC\PlatformBundle\Entity\AdvertSkill;
 use OC\PlatformBundle\Entity\Advert;
 use OC\PlatformBundle\Entity\Image;
@@ -70,13 +77,14 @@ class AdvertController extends Controller
            throw new NotFoundHttpException
            ('Page "'.$page.'" inexistante.');
         }
+        $nbPerPage = 3;
 
         // Ici, on récupérera la liste des annonces, puis on la passera au template
 
  //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-services-theorie-et-creation-1
         // On a donc accès au conteneur :
 
-      //  $mailer = $this->container->get('mailer');
+       //$mailer = $this->container->get('mailer');
 
         // On peut envoyer des e-mails, etc.
 
@@ -85,7 +93,7 @@ class AdvertController extends Controller
         // Dans l'action indexAction() :
 
         // Notre liste d'annonce en dur
-        $listAdverts = array(
+     /*   $listAdverts = array(
             array(
                 'title'   => 'Recherche développpeur Symfony',
                 'id'      => 1,
@@ -107,11 +115,35 @@ class AdvertController extends Controller
 
 
         );
+     */
+
+//https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/tp-consolidation-de-notre-code
+
+        // Pour récupérer la liste de toutes les annonces : on utilise findAll()
+        $listAdverts = $this->getDoctrine()
+            ->getManager()
+            ->getRepository('OCPlatformBundle:Advert')
+            //->findAll()
+            ->getAdverts($page, $nbPerPage)
+
+        ;
+        // On calcule le nombre total de pages grâce au count($listAdverts) qui retourne le nombre total d'annonces
+        $nbPages = ceil(count($listAdverts) / $nbPerPage);
+
+        // Si la page n'existe pas, on retourne une 404
+        if ($page > $nbPages) {
+            throw $this->createNotFoundException("La page ".$page." n'existe pas.");
+        }
+
 
         // Et modifiez le 2nd argument pour injecter notre liste
         return $this->render
-        ('OCPlatformBundle:Advert:index.html.twig', array(
-            'listAdverts' => $listAdverts
+        ('OCPlatformBundle:Advert:index.html.twig',
+            array(
+            'listAdverts' => $listAdverts,
+            'nbPages'     => $nbPages,
+            'page'        => $page,
+
         ));
 
     }
@@ -195,7 +227,8 @@ class AdvertController extends Controller
                 ->findBy(array('advert' => $advert))
             ;
 
-            return $this->render('OCPlatformBundle:Advert:view.html.twig', array(
+            return $this->render('OCPlatformBundle:Advert:view.html.twig',
+                array(
                 'advert'           => $advert,
                 'listApplications' => $listApplications,
                 'listAdvertSkills' => $listAdvertSkills
@@ -257,76 +290,96 @@ class AdvertController extends Controller
 //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/manipuler-ses-entites-avec-doctrine2-1
        // Création de l'entité
        $advert = new Advert();
-       $advert->setTitle('Recherche développeur Symfony.');
-       $advert->setAuthor('Alexandre');
-       $advert->setContent("Nous recherchons un développeur Symfony débutant sur Lyon. Blabla…");
-       // On peut ne pas définir ni la date ni la publication,
-       // car ces attributs sont définis automatiquement dans le constructeur
+       // On crée le FormBuilder grâce au service form factory
 
-//https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-relations-entre-entites-avec-doctrine2-1
-       // Création de l'entité Image
-       $image = new Image();
-       $image->setUrl('http://sdz-upload.s3.amazonaws.com/prod/upload/job-de-reve.jpg');
-       $image->setAlt('Job de rêve');
+       /*  $advert->setTitle('Recherche développeur Symfony.');
+         $advert->setAuthor('Alexandre');
+         $advert->setContent("Nous recherchons un développeur Symfony débutant sur Lyon. Blabla…");
+         // On peut ne pas définir ni la date ni la publication,
+         // car ces attributs sont définis automatiquement dans le constructeur
 
-       // On lie l'image à l'annonce
-       $advert->setImage($image);
+  //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-relations-entre-entites-avec-doctrine2-1
+         // Création de l'entité Image
+         $image = new Image();
+         $image->setUrl('http://sdz-upload.s3.amazonaws.com/prod/upload/job-de-reve.jpg');
+         $image->setAlt('Job de rêve');
 
-       // Création d'une première candidature
-       $application1 = new Application();
-       $application1->setAuthor('Marine');
-       $application1->setContent("J'ai toutes les qualités requises.");
+         // On lie l'image à l'annonce
+         $advert->setImage($image);
 
-       // Création d'une deuxième candidature par exemple
-       $application2 = new Application();
-       $application2->setAuthor('Pierre');
-       $application2->setContent("Je suis très motivé.");
+         // Création d'une première candidature
+         $application1 = new Application();
+         $application1->setAuthor('Marine');
+         $application1->setContent("J'ai toutes les qualités requises.");
 
-       // On lie les candidatures à l'annonce
-       $application1->setAdvert($advert);
-       $application2->setAdvert($advert);
+         // Création d'une deuxième candidature par exemple
+         $application2 = new Application();
+         $application2->setAuthor('Pierre');
+         $application2->setContent("Je suis très motivé.");
 
- //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-relations-entre-entites-avec-doctrine2-1
-// On récupère toutes les compétences possibles
-       $listSkills = $em->getRepository('OCPlatformBundle:Skill')
-           ->findAll();
+         // On lie les candidatures à l'annonce
+         $application1->setAdvert($advert);
+         $application2->setAdvert($advert);
 
-       // Pour chaque compétence
-       foreach ($listSkills as $skill) {
-           // On crée une nouvelle « relation entre 1 annonce et 1 compétence »
-           $advertSkill = new AdvertSkill();
+   //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-relations-entre-entites-avec-doctrine2-1
+  // On récupère toutes les compétences possibles
+        $listSkills = $em->getRepository('OCPlatformBundle:Skill')
+             ->findAll();
 
-           // On la lie à l'annonce, qui est ici toujours la même
-           $advertSkill->setAdvert($advert);
-           // On la lie à la compétence, qui change ici dans la boucle foreach
-           $advertSkill->setSkill($skill);
+         // Pour chaque compétence
+         foreach ($listSkills as $skill) {
+             // On crée une nouvelle « relation entre 1 annonce et 1 compétence »
+             $advertSkill = new AdvertSkill();
 
-           // Arbitrairement, on dit que chaque compétence est requise au niveau 'Expert'
-           $advertSkill->setLevel('Expert');
+             // On la lie à l'annonce, qui est ici toujours la même
+             $advertSkill->setAdvert($advert);
+             // On la lie à la compétence, qui change ici dans la boucle foreach
+             $advertSkill->setSkill($skill);
 
-           // Et bien sûr, on persiste cette entité de relation, propriétaire des deux autres relations
-           $em->persist($advertSkill);
-       }
+             // Arbitrairement, on dit que chaque compétence est requise au niveau 'Expert'
+             $advertSkill->setLevel('Expert');
 
-       // Doctrine ne connait pas encore l'entité $advert. Si vous n'avez pas défini la relation AdvertSkill
+             // Et bien sûr, on persiste cette entité de relation, propriétaire des deux autres relations
+             $em->persist($advertSkill);
+         }
 
-       // On récupère l'EntityManager
-     //  $em = $this->getDoctrine()->getManager();
+         // Doctrine ne connait pas encore l'entité $advert. Si vous n'avez pas défini la relation AdvertSkill
 
-       // Étape 1 : On « persiste » l'entité
-       $em->persist($advert);
+         // On récupère l'EntityManager
+       //  $em = $this->getDoctrine()->getManager();
 
-       // Étape 1 bis : si on n'avait pas défini le cascade={"persist"},
-       // on devrait persister à la main l'entité $image
-       // $em->persist($image);
+         // Étape 1 : On « persiste » l'entité
+         $em->persist($advert);
 
-       // Étape 1 ter : pour cette relation pas de cascade lorsqu'on persiste Advert, car la relation est
-       // définie dans l'entité Application et non Advert. On doit donc tout persister à la main ici.
-       $em->persist($application1);
-       $em->persist($application2);
+         // Étape 1 bis : si on n'avait pas défini le cascade={"persist"},
+         // on devrait persister à la main l'entité $image
+         // $em->persist($image);
 
-       // Étape 2 : On déclenche l'enregistrement
-       $em->flush();
+         // Étape 1 ter : pour cette relation pas de cascade lorsqu'on persiste Advert, car la relation est
+         // définie dans l'entité Application et non Advert. On doit donc tout persister à la main ici.
+         $em->persist($application1);
+         $em->persist($application2);
+
+         // Étape 2 : On déclenche l'enregistrement
+         $em->flush();
+
+  */
+       // On crée le FormBuilder grâce au service form factory
+       $formBuilder = $this->get('form.factory')->createBuilder(FormType::class, $advert);
+
+       // On ajoute les champs de l'entité que l'on veut à notre formulaire
+       $formBuilder
+           ->add('date',      DateType::class)
+           ->add('title',     TextType::class)
+           ->add('content',   TextareaType::class)
+           ->add('author',    TextType::class)
+           ->add('published', CheckboxType::class)
+           ->add('save',      SubmitType::class)
+       ;
+       // Pour l'instant, pas de candidatures, catégories, etc., on les gérera plus tard
+
+       // À partir du formBuilder, on génère le formulaire
+       $form = $formBuilder->getForm();
 
        // Reste de la méthode qu'on avait déjà écrit
        if ($request->isMethod('POST')) {
@@ -339,7 +392,12 @@ class AdvertController extends Controller
        }
 
        // Si on n'est pas en POST, alors on affiche le formulaire
-       return $this->render('OCPlatformBundle:Advert:add.html.twig');
+       return $this->render('OCPlatformBundle:Advert:add.html.twig',
+           array (
+
+                   'form' => $form->createView(),
+
+           ));
 
    }
 
@@ -376,7 +434,10 @@ class AdvertController extends Controller
         if ($request->isMethod('POST')) {
             $request->getSession()->getFlashBag()->add('notice', 'Annonce bien modifiée.');
 
-            return $this->redirectToRoute('oc_platform_view', array('id' => 5));
+            return $this->redirectToRoute('oc_platform_view',
+                array
+                    //('id' => 5));
+                ('id' => $advert->getId()));
         }
 
      /*   $advert = array(
@@ -425,20 +486,29 @@ class AdvertController extends Controller
     }
     public function menuAction($limit)
     {
+        $em = $this->getDoctrine()->getManager();
         // On fixe en dur une liste ici, bien entendu par la suite
         // on la récupérera depuis la BDD !
-       $listAdverts = array(
+       $listAdverts =
+           /*array(
             array('id' => 2, 'title' => 'Recherche développeur Symfony'),
             array('id' => 5, 'title' => 'Mission de webmaster'),
             array('id' => 9, 'title' => 'Offre de stage webdesigner')
         );
+*/
+           $em->getRepository('OCPlatformBundle:Advert')->findBy(
+               array(),                 // Pas de critère
+               array('date' => 'desc'), // On trie par date décroissante
+               $limit,                  // On sélectionne $limit annonces
+               0                        // À partir du premier
+           );
 
-        return $this->render('OCPlatformBundle:Advert:menu.html.twig', array(
+        return $this->render('OCPlatformBundle:Advert:menu.html.twig',
+            array(
             // Tout l'intérêt est ici : le contrôleur passe
             // les variables nécessaires au template !
             'listAdverts' => $listAdverts
         ));
     }
-
 
     }

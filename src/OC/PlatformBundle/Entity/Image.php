@@ -1,5 +1,5 @@
 <?php
-// src/OC/PlatformBundle/Entity/Image
+// src/OC/PlatformBundle/Entity/Image.php
 
 namespace OC\PlatformBundle\Entity;
 
