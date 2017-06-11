@@ -7,17 +7,11 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @ORM\Table(name="oc_application")
- * @ORM\Entity
- *
+ * @ORM\Entity(repositoryClass="OC\PlatformBundle\Repository\ApplicationRepository")
+ * @ORM\HasLifecycleCallbacks()
  */
 class Application
 {
-    /**
-     * @ORM\ManyToOne(targetEntity="OC\PlatformBundle\Entity\Advert", inversedBy="applications")
-     * @ORM\JoinColumn(nullable=false)
-     */
-    private $advert;
-
     /**
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
@@ -40,61 +34,102 @@ class Application
      */
     private $date;
 
+    /**
+     * @ORM\ManyToOne(targetEntity="OC\PlatformBundle\Entity\Advert", inversedBy="applications")
+     * @ORM\JoinColumn(nullable=false)
+     */
+    private $advert;
+
     public function __construct()
     {
         $this->date = new \Datetime();
     }
 
+    /**
+     * @ORM\PrePersist
+     */
+    public function increase()
+    {
+        $this->getAdvert()->increaseApplication();
+    }
+
+    /**
+     * @ORM\PreRemove
+     */
+    public function decrease()
+    {
+        $this->getAdvert()->decreaseApplication();
+    }
+
+    /**
+     * @return int
+     */
     public function getId()
     {
         return $this->id;
     }
 
+    /**
+     * @param string $author
+     */
     public function setAuthor($author)
     {
         $this->author = $author;
-
-        return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getAuthor()
     {
         return $this->author;
     }
 
+    /**
+     * @param string $content
+     */
     public function setContent($content)
     {
         $this->content = $content;
-
-        return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getContent()
     {
         return $this->content;
     }
 
+    /**
+     * @param \Datetime $date
+     */
     public function setDate(\Datetime $date)
     {
         $this->date = $date;
-
-        return $this;
     }
 
+    /**
+     * @return \Datetime
+     */
     public function getDate()
     {
         return $this->date;
     }
+
+    /**
+     * @param Advert $advert
+     */
     public function setAdvert(Advert $advert)
     {
         $this->advert = $advert;
-
-        return $this;
     }
 
+    /**
+     * @return Advert
+     */
     public function getAdvert()
     {
         return $this->advert;
     }
-
 }

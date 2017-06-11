@@ -5,6 +5,7 @@
     "autoload": {
         "psr-4": {
             "": "src/"
+
         },
         "classmap": [
             "app/AppKernel.php",
@@ -12,11 +13,7 @@
         ]
     },
     "autoload-dev": {
-        "psr-4": {
-            "": "src/",
-            "VotreNamespace": "chemin/vers/la/bibliotheque"
-        },
-        "files": [ "app/AppKernel.php" ]
+        "psr-4": { "Tests\\": "tests/" }
 
     },
     "require": {
@@ -33,7 +30,9 @@
         "symfony/symfony": "3.3.*",
         "twig/twig": "^1.0||^2.0",
         "twig/extensions": "~1.0",
-        "doctrine/doctrine-fixtures-bundle": "~2.3"
+        "doctrine/doctrine-fixtures-bundle": "~2.3",
+        "stof/doctrine-extensions-bundle": "^1.2.2"
+
     },
 
     "require-dev": {
