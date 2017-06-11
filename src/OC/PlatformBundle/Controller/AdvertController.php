@@ -5,13 +5,7 @@ namespace OC\PlatformBundle\Controller;
 
 // N'oubliez pas ces use
 
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\FormType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
-use OC\PlatformBundle\Entity\AdvertSkill;
+use OC\PlatformBundle\Form\AdvertType;
 use OC\PlatformBundle\Entity\Advert;
 use OC\PlatformBundle\Entity\Image;
 use OC\PlatformBundle\Entity\Application;
@@ -93,7 +87,7 @@ class AdvertController extends Controller
         // Dans l'action indexAction() :
 
         // Notre liste d'annonce en dur
-     /*   $listAdverts = array(
+    /*  $listAdverts = array(
             array(
                 'title'   => 'Recherche développpeur Symfony',
                 'id'      => 1,
@@ -114,8 +108,8 @@ class AdvertController extends Controller
                 'date'    => new \Datetime())
 
 
-        );
-     */
+        );*/
+
 
 //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/tp-consolidation-de-notre-code
 
@@ -292,7 +286,7 @@ class AdvertController extends Controller
        $advert = new Advert();
        // On crée le FormBuilder grâce au service form factory
 
-       /*  $advert->setTitle('Recherche développeur Symfony.');
+         $advert->setTitle('Recherche développeur Symfony.');
          $advert->setAuthor('Alexandre');
          $advert->setContent("Nous recherchons un développeur Symfony débutant sur Lyon. Blabla…");
          // On peut ne pas définir ni la date ni la publication,
@@ -363,32 +357,25 @@ class AdvertController extends Controller
          // Étape 2 : On déclenche l'enregistrement
          $em->flush();
 
-  */
+
        // On crée le FormBuilder grâce au service form factory
-       $formBuilder = $this->get('form.factory')->createBuilder(FormType::class, $advert);
+       $form   = $this->get('form.factory')
+           ->create(AdvertType::class, $advert);
 
-       // On ajoute les champs de l'entité que l'on veut à notre formulaire
-       $formBuilder
-           ->add('date',      DateType::class)
-           ->add('title',     TextType::class)
-           ->add('content',   TextareaType::class)
-           ->add('author',    TextType::class)
-           ->add('published', CheckboxType::class)
-           ->add('save',      SubmitType::class)
-       ;
-       // Pour l'instant, pas de candidatures, catégories, etc., on les gérera plus tard
+       if ($request->isMethod('POST') && $form
+               ->handleRequest($request)->isValid()) {
+          // Ajoutez cette ligne :
+           // c'est elle qui déplace l'image là où on veut les stocker
+           $advert->getImage()->upload();
 
-       // À partir du formBuilder, on génère le formulaire
-       $form = $formBuilder->getForm();
 
-       // Reste de la méthode qu'on avait déjà écrit
-       if ($request->isMethod('POST')) {
-           $request->getSession()->getFlashBag()
-               ->add('notice', 'Annonce bien enregistrée.');
+           $em = $this->getDoctrine()->getManager();
+           $em->persist($advert);
+           $em->flush();
 
-           // Puis on redirige vers la page de visualisation de cettte annonce
-           return $this->redirectToRoute('oc_platform_view',
-               array('id' => $advert->getId()));
+           $request->getSession()->getFlashBag()->add('notice', 'Annonce bien enregistrée.');
+
+           return $this->redirectToRoute('oc_platform_view', array('id' => $advert->getId()));
        }
 
        // Si on n'est pas en POST, alors on affiche le formulaire
@@ -414,27 +401,18 @@ class AdvertController extends Controller
             throw new NotFoundHttpException("L'annonce d'id ".$id." n'existe pas.");
         }
 
-        // La méthode findAll retourne toutes les catégories de la base de données
-        $listCategories = $em->getRepository('OCPlatformBundle:Category')->findAll();
 
-        // On boucle sur les catégories pour les lier à l'annonce
-        foreach ($listCategories as $category) {
-            $advert->addCategory($category);
-        }
+        $form = $this->get('form.factory')->create(AdvertEditType::class, $advert);
 
-        // Pour persister le changement dans la relation, il faut persister l'entité propriétaire
-        // Ici, Advert est le propriétaire, donc inutile de la persister car on l'a récupérée depuis Doctrine
+        if ($request->isMethod('POST') && $form->handleRequest($request)->isValid()) {
+            // Inutile de persister ici, Doctrine connait déjà notre annonce
+            $em->remove($advert);
+            $em->flush();
 
-        // Étape 2 : On déclenche l'enregistrement
-        $em->flush();
+//            $request->getSession()->getFlashBag()->add('notice', 'Annonce bien modifiée.');
+            $request->getSession()->getFlashBag()->add('info', "L'annonce a bien été supprimée.");
 
-        // Ici, on récupérera l'annonce correspondante à $id
-
-        // Même mécanisme que pour l'ajout
-        if ($request->isMethod('POST')) {
-            $request->getSession()->getFlashBag()->add('notice', 'Annonce bien modifiée.');
-
-            return $this->redirectToRoute('oc_platform_view',
+         return $this->redirectToRoute('oc_platform_view',
                 array
                     //('id' => 5));
                 ('id' => $advert->getId()));
@@ -450,7 +428,8 @@ class AdvertController extends Controller
 
         return $this->render('OCPlatformBundle:Advert:
         edit.html.twig', array(
-            'advert' => $advert
+            'advert' => $advert,
+            'form' =>$form->createView(),
         ));
     }
 
