@@ -4,7 +4,8 @@
 namespace OC\PlatformBundle\Controller;
 
 // N'oubliez pas ces use
-
+use OC\PlatformBundle\Entity\Skill;
+use OC\PlatformBundle\Entity\AdvertSkill;
 use OC\PlatformBundle\Form\AdvertType;
 use OC\PlatformBundle\Entity\Advert;
 use OC\PlatformBundle\Entity\Image;
