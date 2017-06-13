@@ -5,11 +5,22 @@ namespace OC\PlatformBundle\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
+// N'oubliez pas de rajouter ce « use », il définit le namespace pour les annotations de validation
+use Symfony\Component\Validator\Constraints as Assert;
+// Ajoutez ce use pour le contexte
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+// On rajoute ce use pour la contrainte :
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use OC\PlatformBundle\Validator\Antiflood;
+
+
+
 
 /**
  * @ORM\Table(name="oc_advert")
  * @ORM\Entity(repositoryClass="OC\PlatformBundle\Repository\AdvertRepository")
  * @ORM\HasLifecycleCallbacks()
+ * @UniqueEntity(fields="title", message="Une annonce existe déjà avec ce titre.")
  */
 
 class Advert
@@ -26,24 +37,33 @@ class Advert
      * @var \DateTime
      *
      * @ORM\Column(name="date", type="datetime")
+     * @Assert\DateTime()
      */
+
     private $date;
     /**
      * @var string
      *
+     * @Assert\Length(min=10)
+     * Et pour être logique, il faudrait aussi mettre la colonne titre en Unique pour Doctrine :
      * @ORM\Column(name="title", type="string", length=255)
      */
+
     private $title;
     /**
      * @var string
      *
      * @ORM\Column(name="author", type="string", length=255)
+     * @Assert\Length(min=2)
      */
+
     private $author;
     /**
      * @var string
      *
-     * @ORM\Column(name="content", type="string", length=255)
+     * @ORM\Column(name="content", type="text", length=255)
+     * @Assert\NotBlank()
+     * @Antiflood()
      */
     private $content;
     /**
@@ -51,7 +71,8 @@ class Advert
      */
     private $published = true;
     /**
-     * @ORM\OneToOne(targetEntity="OC\PlatformBundle\Entity\Image", cascade={"persist"})
+     * @ORM\OneToOne(targetEntity="OC\PlatformBundle\Entity\Image", cascade={"persist", "remove"})
+     * @Assert\Valid()
      */
     private $image;
     /**
@@ -76,18 +97,17 @@ class Advert
      */
     private $nbApplications = 0;
 
-      /**
+    /**
      * @Gedmo\Slug(fields={"title"})
      * @ORM\Column(name="slug", type="string", length=255)
      */
     private $slug;
 
 
-
     public function __construct()
     {
-        $this->date         = new \Datetime();
-        $this->categories   = new ArrayCollection();
+        $this->date = new \Datetime();
+        $this->categories = new ArrayCollection();
         $this->applications = new ArrayCollection();
     }
 
@@ -117,6 +137,7 @@ class Advert
     {
         return $this->id;
     }
+
     /**
      * @param \DateTime $date
      */
@@ -124,6 +145,7 @@ class Advert
     {
         $this->date = $date;
     }
+
     /**
      * @return \DateTime
      */
@@ -131,6 +153,7 @@ class Advert
     {
         return $this->date;
     }
+
     /**
      * @param string $title
      */
@@ -138,6 +161,7 @@ class Advert
     {
         $this->title = $title;
     }
+
     /**
      * @return string
      */
@@ -145,6 +169,7 @@ class Advert
     {
         return $this->title;
     }
+
     /**
      * @param string $author
      */
@@ -152,6 +177,7 @@ class Advert
     {
         $this->author = $author;
     }
+
     /**
      * @return string
      */
@@ -159,6 +185,7 @@ class Advert
     {
         return $this->author;
     }
+
     /**
      * @param string $content
      */
@@ -166,6 +193,7 @@ class Advert
     {
         $this->content = $content;
     }
+
     /**
      * @return string
      */
@@ -173,6 +201,7 @@ class Advert
     {
         return $this->content;
     }
+
     /**
      * @param bool $published
      */
@@ -180,6 +209,7 @@ class Advert
     {
         $this->published = $published;
     }
+
     /**
      * @return bool
      */
@@ -187,14 +217,17 @@ class Advert
     {
         return $this->published;
     }
+
     public function setImage(Image $image = null)
     {
         $this->image = $image;
     }
+
     public function getImage()
     {
         return $this->image;
     }
+
     /**
      * @param Category $category
      */
@@ -202,6 +235,7 @@ class Advert
     {
         $this->categories[] = $category;
     }
+
     /**
      * @param Category $category
      */
@@ -209,6 +243,7 @@ class Advert
     {
         $this->categories->removeElement($category);
     }
+
     /**
      * @return ArrayCollection
      */
@@ -216,6 +251,7 @@ class Advert
     {
         return $this->categories;
     }
+
     /**
      * @param Application $application
      */
@@ -225,6 +261,7 @@ class Advert
         // On lie l'annonce à la candidature
         $application->setAdvert($this);
     }
+
     /**
      * @param Application $application
      */
@@ -232,6 +269,7 @@ class Advert
     {
         $this->applications->removeElement($application);
     }
+
     /**
      * @return \Doctrine\Common\Collections\Collection
      */
@@ -239,6 +277,7 @@ class Advert
     {
         return $this->applications;
     }
+
     /**
      * @param \DateTime $updatedAt
      */
@@ -246,6 +285,7 @@ class Advert
     {
         $this->updatedAt = $updatedAt;
     }
+
     /**
      * @return \DateTime
      */
@@ -253,6 +293,7 @@ class Advert
     {
         return $this->updatedAt;
     }
+
     /**
      * @param integer $nbApplications
      */
@@ -260,6 +301,7 @@ class Advert
     {
         $this->nbApplications = $nbApplications;
     }
+
     /**
      * @return integer
      */
@@ -267,6 +309,7 @@ class Advert
     {
         return $this->nbApplications;
     }
+
     /**
      * @param string $slug
      */
@@ -274,6 +317,7 @@ class Advert
     {
         $this->slug = $slug;
     }
+
     /**
      * @return string
      */
@@ -281,4 +325,26 @@ class Advert
     {
         return $this->slug;
     }
+
+
+
+    /**
+     * @Assert\Callback
+     */
+    public function isContentValid(ExecutionContextInterface $context)
+    {
+        $forbiddenWords = array('démotivation', 'abandon');
+
+        // On vérifie que le contenu ne contient pas l'un des mots
+        if (preg_match('#' . implode('|', $forbiddenWords) . '#', $this->getContent())) {
+            // La règle est violée, on définit l'erreur
+            $context
+                ->buildViolation('Contenu invalide car il contient un mot interdit.')// message
+                ->atPath('content')// attribut de l'objet qui est violé
+                ->addViolation() // ceci déclenche l'erreur, ne l'oubliez pas
+            ;
+        }
+
+    }
+
 }
