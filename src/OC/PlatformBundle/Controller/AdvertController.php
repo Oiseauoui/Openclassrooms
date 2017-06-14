@@ -4,8 +4,9 @@
 namespace OC\PlatformBundle\Controller;
 
 // N'oubliez pas ces use
-use OC\PlatformBundle\Entity\Skill;
 use OC\PlatformBundle\Entity\AdvertSkill;
+use OC\PlatformBundle\Event\MessagePostEvent;
+use OC\PlatformBundle\Event\PlatformEvents;
 use OC\PlatformBundle\Form\AdvertType;
 use OC\PlatformBundle\Entity\Advert;
 use OC\PlatformBundle\Entity\Image;
@@ -246,12 +247,13 @@ class AdvertController extends Controller
      */
    public function addAction(Request $request)
     {
-        // On vérifie que l'utilisateur dispose bien du rôle ROLE_AUTEUR
+       /* // On vérifie que l'utilisateur dispose bien du rôle ROLE_AUTEUR
         if (!$this->get('security.context')->isGranted('ROLE_AUTEUR')) {
             // Sinon on déclenche une exception « Accès interdit »
             throw new AccessDeniedException('Accès limité aux auteurs.');
         }
 
+*/
         /* $session = $request->getSession();
 
          // Bien sûr, cette méthode devra réellement ajouter l'annonce
@@ -380,6 +382,18 @@ class AdvertController extends Controller
        // On crée le FormBuilder grâce au service form factory
        $form   = $this->get('form.factory')
            ->create(AdvertType::class, $advert);
+
+       if ($form->handleRequest($request)->isValid()) {
+           // On crée l'évènement avec ses 2 arguments
+           $event = new MessagePostEvent($advert->getContent(), $advert->getUser());
+
+           // On déclenche l'évènement
+           $this->get('event_dispatcher')->dispatch(PlatformEvents::POST_MESSAGE, $event);
+
+           // On récupère ce qui a été modifié par le ou les listeners, ici le message
+           $advert->setContent($event->getMessage());
+
+       }
 
        if ($request->isMethod('POST') && $form
                ->handleRequest($request)->isValid()) {
@@ -532,4 +546,12 @@ class AdvertController extends Controller
     {
         return new Response('<html><body>Admin page!</body></html>');
     }
+
+    public function translationAction($name)
+    {
+        return $this->render('OCPlatformBundle:Advert:translation.html.twig', array(
+            'name' => $name
+        ));
+    }
+
     }

@@ -2,9 +2,9 @@
 
 oc_platform:
     resource: "@OCPlatformBundle/Resources/config/routing.yml"
-    prefix:   /platform
-
-
+    prefix:   /{_locale}/platform
+    requirements:
+      _locale: en|fr # les locales disponibles, séparées par des pipes « | »
 
 # On inclut également les routes de notre CoreBundle, sans préfixe
 oc_core:
