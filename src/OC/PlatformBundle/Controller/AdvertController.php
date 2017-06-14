@@ -15,10 +15,18 @@ use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 //use Symfony\Component\HttpFoundation\RedirectResponse; // N'oubliez pas ce use
 //use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+// N'oubliez pas ce use pour l'annotation
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+
 
 
 class AdvertController extends Controller
 {
+    /**
+     * @Security("has_role('ROLE_AUTEUR')")
+     */
+
     // La route fait appel à OCPlatformBundle:Advert:view,
     // on doit donc définir la méthode viewAction.
     // On donne à cette méthode l'argument $id, pour
@@ -232,24 +240,34 @@ class AdvertController extends Controller
 
 
     // Ajoutez cette méthode :
+
+    /**
+     * @Security("has_role('ROLE_AUTEUR')")
+     */
    public function addAction(Request $request)
     {
-       /* $session = $request->getSession();
-
-        // Bien sûr, cette méthode devra réellement ajouter l'annonce
-
-        // Mais faisons comme si c'était le cas
-        $session->getFlashBag()->add('info', 'Annonce bien enregistrée');
-
-        // Le « flashBag » est ce qui contient les messages flash dans la session
-        // Il peut bien sûr contenir plusieurs messages :
-        $session->getFlashBag()->add('info', 'Oui oui, elle est bien enregistrée !');
-
-        // Puis on redirige vers la page de visualisation de cette annonce
-        return $this->redirectToRoute('oc_platform_view', array('id' => 5));
-
+        // On vérifie que l'utilisateur dispose bien du rôle ROLE_AUTEUR
+        if (!$this->get('security.context')->isGranted('ROLE_AUTEUR')) {
+            // Sinon on déclenche une exception « Accès interdit »
+            throw new AccessDeniedException('Accès limité aux auteurs.');
         }
-   */
+
+        /* $session = $request->getSession();
+
+         // Bien sûr, cette méthode devra réellement ajouter l'annonce
+
+         // Mais faisons comme si c'était le cas
+         $session->getFlashBag()->add('info', 'Annonce bien enregistrée');
+
+         // Le « flashBag » est ce qui contient les messages flash dans la session
+         // Il peut bien sûr contenir plusieurs messages :
+         $session->getFlashBag()->add('info', 'Oui oui, elle est bien enregistrée !');
+
+         // Puis on redirige vers la page de visualisation de cette annonce
+         return $this->redirectToRoute('oc_platform_view', array('id' => 5));
+
+         }
+    */
 // La gestion d'un formulaire est particulière, mais l'idée est la suivante :
 
        // Si la requête est en POST, c'est que le visiteur a soumis le formulaire
@@ -386,6 +404,10 @@ class AdvertController extends Controller
                    'form' => $form->createView(),
 
            ));
+//
+
+       // Ici l'utilisateur a les droits suffisant,
+       // on peut ajouter une annonce
 
    }
 
@@ -434,7 +456,7 @@ class AdvertController extends Controller
         ));
     }
 
-    public function deleteAction($id)
+    public function deleteAction(Request $request, $id)
     {
  //https://openclassrooms.com/courses/developpez-votre-site-web-avec-le-framework-symfony/les-relations-entre-entites-avec-doctrine2-1
         $em = $this->getDoctrine()->getManager();
@@ -448,22 +470,23 @@ class AdvertController extends Controller
         }
 
         // On boucle sur les catégories de l'annonce pour les supprimer
-        foreach ($advert->getCategories() as $category) {
-            $advert->removeCategory($category);
-        }
-
-        // Pour persister le changement dans la relation, il faut persister l'entité propriétaire
-        // Ici, Advert est le propriétaire, donc inutile de la persister car on l'a récupérée depuis Doctrine
-
-        // On déclenche la modification
-        $em->flush();
+        $form = $this->get('form.factory')->create();
+        if ($request->isMethod('POST') && $form->handleRequest($request)->isValid()) {
+            $em->remove($advert);
+            $em->flush();
 
         // Ici, on récupérera l'annonce correspondant à $id
 
         // Ici, on gérera la suppression de l'annonce en question
 
-        return $this->render('OCPlatformBundle:Advert:delete.html.twig');
+        $request->getSession()->getFlashBag()->add('info', "L'annonce a bien été supprimée.");
+        return $this->redirectToRoute('oc_platform_home');
     }
+         return $this->render('OCPlatformBundle:Advert:delete.html.twig', array(
+          'advert' => $advert,
+          'form'   => $form->createView(),
+));
+}
     public function menuAction($limit)
     {
         $em = $this->getDoctrine()->getManager();
@@ -490,28 +513,23 @@ class AdvertController extends Controller
             'listAdverts' => $listAdverts
         ));
     }
-    public function testAction()
+    // Méthode facultative pour tester la purge
+    public function purgeAction($days, Request $request)
     {
-        $advert = new Advert;
-
-        $advert->setDate(new \Datetime());  // Champ « date » OK
-        $advert->setTitle('abc');           // Champ « title » incorrect : moins de 10 caractères
-        //$advert->setContent('blabla');    // Champ « content » incorrect : on ne le définit pas
-        $advert->setAuthor('A');            // Champ « author » incorrect : moins de 2 caractères
-
-        // On récupère le service validator
-        $validator = $this->get('validator');
-
-        // On déclenche la validation sur notre object
-        $listErrors = $validator->validate($advert);
-
-        // Si $listErrors n'est pas vide, on affiche les erreurs
-        if(count($listErrors) > 0) {
-            // $listErrors est un objet, sa méthode __toString permet de lister joliement les erreurs
-            return new Response((string) $listErrors);
-        } else {
-            return new Response("L'annonce est valide !");
-        }
+        // On récupère notre service
+        $purger = $this->get('oc_platform.purger.advert');
+        // On purge les annonces
+        $purger->purge($days);
+        // On ajoute un message flash arbitraire
+        $request->getSession()->getFlashBag()->add('info', 'Les annonces plus vieilles que '.$days.' jours ont été purgées.');
+        // On redirige vers la page d'accueil
+        return $this->redirectToRoute('oc_platform_home');
     }
-
+    /**
+     * @Route("/admin")
+     */
+    public function adminAction()
+    {
+        return new Response('<html><body>Admin page!</body></html>');
+    }
     }

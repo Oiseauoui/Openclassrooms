@@ -1,24 +1,38 @@
 # To get started with security, check out the documentation:
 # https://symfony.com/doc/current/security.html
 security:
+  encoders:
+    OC\UserBundle\Entity\User: sha512
 
-    # https://symfony.com/doc/current/security.html#b-configuring-how-users-are-loaded
-    providers:
-        in_memory:
-            memory: ~
+  role_hierarchy:
+    # Un admin hérite des droits d'auteur et de modérateur
+    ROLE_ADMIN:       [ROLE_AUTEUR, ROLE_MODERATEUR]
+    # On garde ce rôle superadmin, il nous resservira par la suite
+    ROLE_SUPER_ADMIN: [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
 
-    firewalls:
-        # disables authentication for assets and the profiler, adapt it according to your needs
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
+  providers:
+    main:
+      id: fos_user.user_provider.username
 
-        main:
-            anonymous: ~
-            # activate different ways to authenticate
+  firewalls:
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+    main:
+      pattern:      ^/
+      anonymous:    true
+      provider:     main
+      form_login:
+        login_path: fos_user_security_login
+        check_path: fos_user_security_check
+      logout:
+        path:       fos_user_security_logout
+        target:     /platform
+      remember_me:
+        secret:     %secret% # %secret% est un paramètre de parameter
 
-            # https://symfony.com/doc/current/security.html#a-configuring-how-your-users-will-authenticate
-            #http_basic: ~
-
-            # https://symfony.com/doc/current/security/form_login_setup.html
-            #form_login: ~
+  access_control:
+    #- { path: ^/admin, roles: ROLE_ADMIN }
+    - { path: ^/login$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/resetting, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/, roles: ROLE_USER }
